@@ -1,81 +1,72 @@
-from ollama import chat
+import os
+
+from google import genai
 
 from src.retrieval.search import search
 
-MODEL_NAME = "llama3.2"
+MODEL_NAME = "gemini-3.8-flash"
+
+SYSTEM_INSTRUCTIONS = """You are an AI research assistant.
+
+Answer using the provided document context.
+Do not invent facts.
+If the answer is not available in the documents, say:
+"I don't know based on the provided documents."
+Use conversation history for follow-up questions.
+"""
 
 
 def generate_answer(
     question: str,
     conversation_history=None
 ) -> str:
-    """
+    """Retrieve relevant document context and generate a grounded answer with Gemini."""
 
     if not question or not question.strip():
         return "Please enter a question."
-    Retrieve relevant documents and generate an answer
-    using the conversation history.
-    """
 
-    results = search(
-        question,
-        n_results=3
-    )
-
+    results = search(question, n_results=3)
     documents = results["documents"][0]
 
     if not documents:
         return "No relevant documents were found. Upload and process a research PDF, then try again."
 
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise RuntimeError(
+            "Gemini API key is missing. Set GEMINI_API_KEY in your environment "
+            "or add it to your Streamlit Community Cloud secrets."
+        )
+
     context = "\n\n".join(documents)
+    history = "\n".join(
+        f"{message['role'].capitalize()}: {message['content']}"
+        for message in (conversation_history or [])
+    )
+    if not history:
+        history = "No prior conversation."
 
-    messages = [
-        {
-            "role": "system",
-            "content": """
-You are an AI research assistant.
+    prompt = f"""{SYSTEM_INSTRUCTIONS}
 
-Answer questions using the provided document context.
+Conversation history:
+{history}
 
-Rules:
-- Use the document context as the main source of information.
-- Do not invent facts.
-- If the answer is not available in the documents, say:
-  "I don't know based on the provided documents."
-- Use conversation history to understand follow-up questions.
-"""
-        }
-    ]
-
-    if conversation_history:
-
-        for message in conversation_history:
-
-            messages.append(
-                {
-                    "role": message["role"],
-                    "content": message["content"]
-                }
-            )
-
-    messages.append(
-        {
-            "role": "user",
-            "content": f"""
 Relevant document context:
-
 {context}
 
 Current question:
-
 {question}
 """
-        }
-    )
 
     try:
-        response = chat(model=MODEL_NAME, messages=messages)
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+        )
     except Exception as exc:
-        raise RuntimeError("Ollama or the Llama 3.2 model is unavailable. Start Ollama and ensure llama3.2 is installed.") from exc
+        raise RuntimeError(
+            "Gemini could not generate an answer. Check the GEMINI_API_KEY "
+            "and your network connection, then try again."
+        ) from exc
 
-    return response.message.content
+    return response.text or "Gemini returned an empty response. Please try again."

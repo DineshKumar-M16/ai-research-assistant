@@ -6,4 +6,5 @@ langgraph>=1.2.12
 sentence-transformers>=3.0.0
 chromadb>=0.5.0
 ollama>=0.4.0
+google-genai
 streamlit>=1.30.0
