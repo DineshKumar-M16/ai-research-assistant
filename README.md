@@ -1,3 +1,21 @@
+# 🤖 AI Research Assistant
+
+A RAG-based AI Research Assistant that allows users to upload PDFs and ask questions about their documents.
+
+## 🚀 Live Demo
+
+👉 [Try the AI Research Assistant](https://ai-research-assistant-7tkuv6quygps4tgpc95wbb.streamlit.app/)
+
+## 🛠️ Tech Stack
+
+- Python
+- Streamlit
+- ChromaDB
+- Sentence Transformers
+- LangGraph
+- RAG
+- Google Gemini
+- PyPDF
 # AI Research Assistant
 
 A local, PDF-based research assistant built with Streamlit, sentence-transformer embeddings, ChromaDB, Ollama, and LangGraph. Upload research documents, retrieve relevant text chunks, and ask questions grounded in the retrieved context.
